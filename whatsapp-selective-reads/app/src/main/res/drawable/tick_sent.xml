@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single tick (sent) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="11dp"
+    android:viewportWidth="16"
+    android:viewportHeight="11">
+    <path
+        android:fillColor="@color/wa_tick_sent"
+        android:pathData="M11.07,0.73L4.83,6.97 2.36,4.5 0.95,5.91 4.83,9.79 12.48,2.14Z" />
+</vector>

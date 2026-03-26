@@ -1,6 +1,7 @@
 package com.whatsapp.selectivereads.ui.adapter
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -15,8 +16,6 @@ import java.util.Locale
 
 class ConversationAdapter(
     private val onClick: (ConversationEntity) -> Unit,
-    private val onMarkRead: (ConversationEntity) -> Unit,
-    private val onDismiss: (ConversationEntity) -> Unit,
     private val onReply: (ConversationEntity) -> Unit
 ) : ListAdapter<ConversationEntity, ConversationAdapter.ConversationViewHolder>(ConversationDiffCallback()) {
 
@@ -43,35 +42,39 @@ class ConversationAdapter(
                 lastMessage.text = conversation.lastMessagePreview
                 messageTime.text = formatTime(conversation.lastMessageTimestamp)
 
-                if (conversation.isGroupChat) {
-                    chatIcon.setImageResource(R.drawable.ic_group)
+                // Avatar
+                chatAvatar.setImageResource(
+                    if (conversation.isGroupChat) R.drawable.ic_group
+                    else R.drawable.ic_person
+                )
+
+                // Unread badge
+                if (conversation.unreadCount > 0) {
+                    unreadBadge.visibility = View.VISIBLE
+                    unreadBadge.text = conversation.unreadCount.toString()
+                    chatTitle.setTypeface(null, android.graphics.Typeface.BOLD)
+                    lastMessage.setTypeface(null, android.graphics.Typeface.BOLD)
                 } else {
-                    chatIcon.setImageResource(R.drawable.ic_person)
+                    unreadBadge.visibility = View.GONE
+                    chatTitle.setTypeface(null, android.graphics.Typeface.NORMAL)
+                    lastMessage.setTypeface(null, android.graphics.Typeface.NORMAL)
                 }
 
-                unreadBadge.text = conversation.unreadCount.toString()
-                unreadBadge.visibility = if (conversation.unreadCount > 0) {
-                    android.view.View.VISIBLE
-                } else {
-                    android.view.View.GONE
-                }
-
+                // Reply button
                 val isPending = conversation.status == MessageStatus.PENDING
-
-                btnReply.visibility = if (isPending && conversation.hasReplyAction) {
-                    android.view.View.VISIBLE
+                if (isPending && conversation.hasReplyAction) {
+                    btnReply.visibility = View.VISIBLE
+                    btnReply.setOnClickListener { onReply(conversation) }
                 } else {
-                    android.view.View.GONE
+                    btnReply.visibility = View.GONE
                 }
-                btnReply.setOnClickListener { onReply(conversation) }
 
-                btnMarkRead.isEnabled = isPending
-                btnMarkRead.alpha = if (isPending) 1.0f else 0.4f
-                btnMarkRead.setOnClickListener { onMarkRead(conversation) }
-
-                btnDismiss.isEnabled = isPending
-                btnDismiss.alpha = if (isPending) 1.0f else 0.4f
-                btnDismiss.setOnClickListener { onDismiss(conversation) }
+                // Status indicator on last message
+                if (isPending) {
+                    lastMessage.setTextColor(itemView.context.getColor(R.color.accent))
+                } else {
+                    lastMessage.setTextColor(itemView.context.getColor(R.color.wa_msg_time))
+                }
 
                 root.setOnClickListener { onClick(conversation) }
             }
@@ -81,9 +84,10 @@ class ConversationAdapter(
             val now = System.currentTimeMillis()
             val diff = now - timestamp
             return when {
-                diff < 60_000 -> "Just now"
-                diff < 3600_000 -> "${diff / 60_000}m ago"
-                else -> timeFormat.format(Date(timestamp))
+                diff < 60_000 -> "now"
+                diff < 86400_000 -> timeFormat.format(Date(timestamp))
+                diff < 172800_000 -> "Yesterday"
+                else -> SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date(timestamp))
             }
         }
     }

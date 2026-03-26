@@ -1,71 +1,203 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<!-- WhatsApp chat clone layout -->
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/chat_background">
+    android:orientation="vertical"
+    android:background="@color/wa_chat_bg">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <!-- Toolbar -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/chat_toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        app:titleTextColor="@android:color/white"
+        android:background="@color/wa_toolbar"
+        android:elevation="4dp"
         app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@android:color/white"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:navigationIconTint="@android:color/white">
 
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_marginStart="4dp">
+
+            <ImageView
+                android:id="@+id/chat_avatar"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="8dp"
+                android:background="@drawable/circle_background"
+                android:src="@drawable/ic_person"
+                android:contentDescription="Chat avatar"
+                app:tint="@android:color/white" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/chat_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/wa_toolbar_text"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/chat_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#B2FFFFFF"
+                    android:textSize="12sp"
+                    android:maxLines="1"
+                    android:text="tap for more info" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btn_video_call"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_videocam"
+            android:contentDescription="Video call"
+            android:scaleType="fitCenter" />
+
+        <ImageButton
+            android:id="@+id/btn_voice_call"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_call"
+            android:contentDescription="Voice call"
+            android:scaleType="fitCenter" />
+
+        <ImageButton
+            android:id="@+id/btn_more"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_more_vert"
+            android:contentDescription="More options"
+            android:scaleType="fitCenter" />
+
+    </androidx.appcompat.widget.Toolbar>
+
+    <!-- Chat status bar (read receipt status) -->
     <LinearLayout
-        android:id="@+id/chat_info_bar"
+        android:id="@+id/chat_status_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="8dp"
-        android:background="@color/primary_dark"
-        app:layout_constraintTop_toBottomOf="@id/toolbar">
+        android:gravity="center"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="6dp"
+        android:background="@color/primary_dark">
 
         <ImageView
-            android:id="@+id/chat_type_icon"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/ic_person"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:src="@drawable/ic_done"
             app:tint="@android:color/white" />
 
         <TextView
             android:id="@+id/status_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="6dp"
             android:textSize="12sp"
             android:textColor="@android:color/white"
-            android:text="Pending - read receipt not sent" />
+            android:text="Read receipt NOT sent" />
 
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/messages_recycler_view"
-        android:layout_width="0dp"
+    <!-- Messages container with wallpaper background -->
+    <FrameLayout
+        android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:clipToPadding="false"
-        android:padding="8dp"
-        android:scrollbars="vertical"
-        app:layout_constraintTop_toBottomOf="@id/chat_info_bar"
-        app:layout_constraintBottom_toTopOf="@id/action_bar"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:layout_weight="1">
 
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/wa_wallpaper"
+            android:scaleType="matrix"
+            android:alpha="0.3" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/messages_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:scrollbars="vertical"
+            android:overScrollMode="never" />
+
+        <!-- Scroll to bottom button -->
+        <FrameLayout
+            android:id="@+id/scroll_to_bottom_btn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/scroll_to_bottom_bg"
+            android:elevation="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_scroll_down"
+                android:contentDescription="Scroll to bottom" />
+
+            <TextView
+                android:id="@+id/unread_count_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="-4dp"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="1dp"
+                android:background="@drawable/unread_pill_bg"
+                android:textColor="@color/wa_unread_text"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+        </FrameLayout>
+
+    </FrameLayout>
+
+    <!-- Action bar (Mark Read / Dismiss) -->
     <LinearLayout
         android:id="@+id/action_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:padding="6dp"
-        android:background="?attr/colorSurface"
-        android:elevation="4dp"
-        app:layout_constraintBottom_toTopOf="@id/reply_bar">
+        android:padding="4dp"
+        android:background="#FFF0F0F0"
+        android:visibility="gone">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_open_whats_app"
@@ -74,7 +206,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Open WhatsApp"
-            android:textSize="11sp" />
+            android:textSize="11sp"
+            app:icon="@drawable/ic_open_in_new"
+            app:iconSize="16dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_dismiss"
@@ -92,49 +226,101 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Mark Read"
-            android:textSize="11sp" />
+            android:textSize="11sp"
+            app:icon="@drawable/ic_done"
+            app:iconSize="16dp"
+            app:backgroundTint="@color/wa_tick_read" />
 
     </LinearLayout>
 
+    <!-- Input bar (WhatsApp style) -->
     <LinearLayout
-        android:id="@+id/reply_bar"
+        android:id="@+id/input_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="8dp"
-        android:background="?attr/colorSurface"
-        android:elevation="8dp"
-        app:layout_constraintBottom_toBottomOf="parent">
+        android:padding="6dp"
+        android:background="@color/wa_input_bar_bg">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/reply_input"
+        <!-- Emoji button -->
+        <ImageButton
+            android:id="@+id/btn_emoji"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_emoji"
+            android:contentDescription="Emoji"
+            android:scaleType="fitCenter" />
+
+        <!-- Text input -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="Type a reply..."
-            android:textSize="14sp"
-            android:maxLines="3"
-            android:inputType="textCapSentences|textMultiLine"
-            android:background="@drawable/reply_input_background"
-            android:padding="10dp" />
+            android:background="@drawable/input_field_bg"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:minHeight="44dp"
+            android:paddingHorizontal="4dp">
 
+            <EditText
+                android:id="@+id/input_message"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Type a message"
+                android:textSize="16sp"
+                android:textColor="@color/wa_msg_text"
+                android:textColorHint="@color/wa_msg_time"
+                android:inputType="textCapSentences|textMultiLine"
+                android:maxLines="5"
+                android:background="@null"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="8dp" />
+
+            <!-- Attachment button -->
+            <ImageButton
+                android:id="@+id/btn_attach"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:padding="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_attach"
+                android:contentDescription="Attach"
+                android:scaleType="fitCenter" />
+
+            <!-- Camera button -->
+            <ImageButton
+                android:id="@+id/btn_camera"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:padding="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_camera"
+                android:contentDescription="Camera"
+                android:scaleType="fitCenter" />
+
+        </LinearLayout>
+
+        <!-- Send / Mic button -->
         <FrameLayout
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp">
+            android:layout_marginStart="4dp">
 
             <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/reply_send_button"
+                android:id="@+id/btn_send"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:src="@drawable/ic_send"
+                android:src="@drawable/ic_mic"
                 app:fabSize="mini"
                 app:tint="@android:color/white"
-                app:backgroundTint="@color/primary" />
+                app:backgroundTint="@color/wa_toolbar" />
 
             <ProgressBar
-                android:id="@+id/reply_progress_bar"
+                android:id="@+id/send_progress"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center"
@@ -145,4 +331,4 @@
 
     </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

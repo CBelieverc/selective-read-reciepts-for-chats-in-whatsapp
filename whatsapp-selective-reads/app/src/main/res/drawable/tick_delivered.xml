@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Double tick (delivered) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="11dp"
+    android:viewportWidth="16"
+    android:viewportHeight="11">
+    <!-- First tick -->
+    <path
+        android:fillColor="@color/wa_tick_delivered"
+        android:pathData="M11.07,0.73L4.83,6.97 2.36,4.5 0.95,5.91 4.83,9.79 12.48,2.14Z" />
+    <!-- Second tick -->
+    <path
+        android:fillColor="@color/wa_tick_delivered"
+        android:pathData="M14.07,0.73L7.83,6.97 6.83,5.97 5.42,7.38 7.83,9.79 15.48,2.14Z" />
+</vector>

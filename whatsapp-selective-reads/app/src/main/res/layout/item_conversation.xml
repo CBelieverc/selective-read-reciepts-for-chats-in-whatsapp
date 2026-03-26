@@ -1,18 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView
+<!-- WhatsApp chat list item -->
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="4dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp">
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true">
 
+    <!-- Avatar -->
+    <ImageView
+        android:id="@+id/chat_avatar"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="10dp"
+        android:background="@drawable/circle_background"
+        android:src="@drawable/ic_person"
+        android:contentDescription="Chat avatar"
+        app:tint="@android:color/white" />
+
+    <!-- Chat info -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="12dp">
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -20,115 +37,76 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <ImageView
-                android:id="@+id/chat_icon"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:padding="8dp"
-                android:background="@drawable/circle_background"
-                android:src="@drawable/ic_person"
-                android:contentDescription="Chat type"
-                app:tint="@android:color/white" />
-
-            <LinearLayout
+            <TextView
+                android:id="@+id/chat_title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="12dp"
-                android:orientation="vertical">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <TextView
-                        android:id="@+id/chat_title"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:maxLines="1"
-                        android:ellipsize="end" />
-
-                    <TextView
-                        android:id="@+id/message_time"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="11sp"
-                        android:textColor="?android:attr/textColorTertiary"
-                        android:layout_marginStart="8dp" />
-
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/last_message"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:textSize="13sp"
-                    android:textColor="?android:attr/textColorSecondary"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-            </LinearLayout>
+                android:textSize="16sp"
+                android:textColor="@color/wa_msg_text"
+                android:textStyle="normal"
+                android:maxLines="1"
+                android:ellipsize="end" />
 
             <TextView
-                android:id="@+id/unread_badge"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginStart="8dp"
-                android:gravity="center"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textColor="@android:color/white"
-                android:background="@drawable/circle_badge"
-                android:visibility="gone" />
+                android:id="@+id/message_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/wa_msg_time"
+                android:layout_marginStart="8dp" />
 
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="2dp"
             android:orientation="horizontal"
-            android:gravity="end">
+            android:gravity="center_vertical">
 
-            <com.google.android.material.button.MaterialButton
+            <!-- Last message + reply indicator -->
+            <TextView
+                android:id="@+id/last_message"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="13sp"
+                android:textColor="@color/wa_msg_time"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <!-- Unread count -->
+            <TextView
+                android:id="@+id/unread_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="1dp"
+                android:background="@drawable/unread_pill_bg"
+                android:textColor="@color/wa_unread_text"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:minWidth="20dp"
+                android:visibility="gone" />
+
+            <!-- Reply button (inline) -->
+            <ImageButton
                 android:id="@+id/btn_reply"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="Reply"
-                android:textSize="12sp"
-                android:visibility="gone"
-                app:icon="@drawable/ic_reply"
-                app:iconSize="16dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_mark_read"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="wrap_content"
+                android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:layout_marginStart="4dp"
-                android:text="Mark Read"
-                android:textSize="12sp"
-                app:icon="@drawable/ic_done"
-                app:iconSize="16dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_dismiss"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:text="Dismiss"
-                android:textSize="12sp" />
+                android:padding="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_reply"
+                app:tint="@color/primary"
+                android:contentDescription="Reply"
+                android:visibility="gone" />
 
         </LinearLayout>
 
     </LinearLayout>
 
-</com.google.android.material.card.MaterialCardView>
+</LinearLayout>

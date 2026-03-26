@@ -76,6 +76,23 @@ An Android application in `whatsapp-selective-reads/` that provides selective re
 5. Incoming WhatsApp messages appear as conversations
 6. Tap to view full messages, reply, or handle media
 
+## UI Design
+
+The app is designed as a **pixel-perfect WhatsApp clone**:
+- **Chat list**: WhatsApp-style conversation items with avatar, unread badge, time, last message preview
+- **Chat view**: Exact WhatsApp chat UI with:
+  - Green toolbar with contact avatar, name, call/video icons
+  - Wallpaper background with doodle pattern
+  - Sent messages: right-aligned green bubbles with double ticks
+  - Received messages: left-aligned white bubbles
+  - Date dividers ("TODAY", "YESTERDAY", formatted dates)
+  - Tick indicators: single gray (sent), double gray (delivered), double blue (read)
+  - Group chat sender names in colored text
+  - Scroll-to-bottom button with unread count badge
+  - WhatsApp-style input bar with emoji/attach/camera/mic-send toggle
+- **Status bar**: Shows read receipt state under toolbar
+- **Colors**: Exact WhatsApp color palette (green #128C7E, chat bg #ECE5DD, bubbles)
+
 ## Session History
 
 | Date | Changes |
@@ -83,3 +100,4 @@ An Android application in `whatsapp-selective-reads/` that provides selective re
 | Initial | Next.js template created |
 | 2026-03-26 | Android WhatsApp selective read receipts app built |
 | 2026-03-26 | Enhanced: full messages, media handling, inline reply, conversation grouping |
+| 2026-03-26 | UI redesign: pixel-perfect WhatsApp chat clone (bubbles, ticks, input bar, wallpaper) |

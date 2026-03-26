@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sent message bubble (right side, with tail) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Main bubble body -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/wa_bubble_out" />
+            <corners
+                android:topLeftRadius="12dp"
+                android:topRightRadius="2dp"
+                android:bottomLeftRadius="12dp"
+                android:bottomRightRadius="12dp" />
+        </shape>
+    </item>
+    <!-- Tail pointer -->
+    <item
+        android:left="0dp"
+        android:top="0dp"
+        android:right="0dp"
+        android:bottom="0dp">
+        <vector
+            android:width="8dp"
+            android:height="13dp"
+            android:viewportWidth="8"
+            android:viewportHeight="13">
+            <path
+                android:fillColor="@color/wa_bubble_out"
+                android:pathData="M8,0 Q0,0 0,13 Q4,11 8,8 Z" />
+        </vector>
+    </item>
+</layer-list>

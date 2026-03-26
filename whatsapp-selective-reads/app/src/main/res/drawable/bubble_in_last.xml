@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Last in group: bottom corners with tail -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/wa_bubble_in" />
+            <corners
+                android:topLeftRadius="2dp"
+                android:topRightRadius="2dp"
+                android:bottomLeftRadius="12dp"
+                android:bottomRightRadius="12dp" />
+        </shape>
+    </item>
+    <item>
+        <vector
+            android:width="8dp"
+            android:height="13dp"
+            android:viewportWidth="8"
+            android:viewportHeight="13">
+            <path
+                android:fillColor="@color/wa_bubble_in"
+                android:pathData="M0,0 Q8,0 8,13 Q4,11 0,8 Z" />
+        </vector>
+    </item>
+</layer-list>

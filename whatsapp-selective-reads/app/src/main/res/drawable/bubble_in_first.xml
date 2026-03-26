@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- First in group: top corners with tail -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/wa_bubble_in" />
+    <corners
+        android:topLeftRadius="2dp"
+        android:topRightRadius="12dp"
+        android:bottomLeftRadius="2dp"
+        android:bottomRightRadius="2dp" />
+</shape>

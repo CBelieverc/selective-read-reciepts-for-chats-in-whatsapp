@@ -56,8 +56,6 @@ class MainActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         conversationAdapter = ConversationAdapter(
             onClick = { conversation -> openConversation(conversation) },
-            onMarkRead = { conversation -> markConversationAsRead(conversation) },
-            onDismiss = { conversation -> dismissConversation(conversation) },
             onReply = { conversation -> openConversationForReply(conversation) }
         )
 

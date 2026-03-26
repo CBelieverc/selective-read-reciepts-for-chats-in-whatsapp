@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sent message bubble without tail (grouped messages) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/wa_bubble_out" />
+    <corners
+        android:topLeftRadius="12dp"
+        android:topRightRadius="2dp"
+        android:bottomLeftRadius="12dp"
+        android:bottomRightRadius="12dp" />
+</shape>

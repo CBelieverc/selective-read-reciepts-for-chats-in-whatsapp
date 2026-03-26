@@ -15,8 +15,9 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            android:background="@color/wa_toolbar"
             app:title="Selective Read Receipts"
-            app:titleTextColor="@android:color/white" />
+            app:titleTextColor="@color/wa_toolbar_text" />
 
         <TextView
             android:id="@+id/service_status"
@@ -25,7 +26,7 @@
             android:paddingHorizontal="16dp"
             android:paddingVertical="6dp"
             android:textSize="12sp"
-            android:background="?attr/colorPrimaryDark"
+            android:background="@color/primary_dark"
             android:textColor="@color/status_inactive"
             android:text="Service inactive" />
 
@@ -33,21 +34,22 @@
             android:id="@+id/tab_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@color/primary"
             app:tabMode="fixed"
             app:tabGravity="fill"
             app:tabIndicatorColor="@android:color/white"
             app:tabSelectedTextColor="@android:color/white"
-            app:tabTextColor="@android:color/white">
+            app:tabTextColor="#B2FFFFFF">
 
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Pending" />
+                android:text="PENDING" />
 
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="History" />
+                android:text="ALL CHATS" />
 
         </com.google.android.material.tabs.TabLayout>
 
@@ -68,7 +70,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:padding="8dp"
                 android:scrollbars="vertical" />
 
             <LinearLayout
@@ -109,6 +110,7 @@
         android:layout_margin="16dp"
         android:contentDescription="Mark all as read"
         app:srcCompat="@drawable/ic_done_all"
+        app:backgroundTint="@color/accent"
         app:tint="@android:color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
