@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Selective Read Receipts</string>
+    <string name="service_active">Service active - intercepting WhatsApp notifications</string>
+    <string name="service_inactive">Service inactive - tap settings to enable</string>
+    <string name="no_pending_messages">No pending messages</string>
+    <string name="no_message_history">No message history</string>
+    <string name="mark_as_read">Mark as Read</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="open_chat">Open Chat</string>
+    <string name="mark_all_read">Mark All Read</string>
+</resources>
