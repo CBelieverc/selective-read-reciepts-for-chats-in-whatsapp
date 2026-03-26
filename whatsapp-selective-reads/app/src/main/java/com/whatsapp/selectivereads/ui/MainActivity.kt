@@ -15,21 +15,23 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import com.whatsapp.selectivereads.R
 import com.whatsapp.selectivereads.WhatsAppSelectiveReadsApp
-import com.whatsapp.selectivereads.data.Message
+import com.whatsapp.selectivereads.data.ConversationEntity
 import com.whatsapp.selectivereads.data.MessageStatus
 import com.whatsapp.selectivereads.databinding.ActivityMainBinding
 import com.whatsapp.selectivereads.service.PreferencesManager
 import com.whatsapp.selectivereads.service.WhatsAppNotificationService
-import com.whatsapp.selectivereads.ui.adapter.MessageAdapter
+import com.whatsapp.selectivereads.ui.adapter.ConversationAdapter
 import com.whatsapp.selectivereads.ui.settings.SettingsActivity
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var adapter: MessageAdapter
+    private lateinit var conversationAdapter: ConversationAdapter
     private lateinit var prefs: PreferencesManager
-    private val dao by lazy { WhatsAppSelectiveReadsApp.instance.database.messageDao() }
+    private val db by lazy { WhatsAppSelectiveReadsApp.instance.database }
+    private val conversationDao by lazy { db.conversationDao() }
+    private val messageDao by lazy { db.messageDao() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,7 +44,7 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         setupTabs()
         setupFab()
-        observeMessages()
+        observeConversations()
         checkNotificationAccess()
     }
 
@@ -52,19 +54,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = MessageAdapter(
-            onMarkRead = { message -> markAsRead(message) },
-            onDismiss = { message -> dismissMessage(message) },
-            onOpenChat = { message -> openWhatsAppChat(message) }
+        conversationAdapter = ConversationAdapter(
+            onClick = { conversation -> openConversation(conversation) },
+            onMarkRead = { conversation -> markConversationAsRead(conversation) },
+            onDismiss = { conversation -> dismissConversation(conversation) },
+            onReply = { conversation -> openConversationForReply(conversation) }
         )
 
         binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = this@MainActivity.adapter
+            adapter = this@MainActivity.conversationAdapter
         }
 
         binding.swipeRefresh.setOnRefreshListener {
-            observeMessages()
+            observeConversations()
             binding.swipeRefresh.isRefreshing = false
         }
     }
@@ -73,8 +76,8 @@ class MainActivity : AppCompatActivity() {
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 when (tab?.position) {
-                    0 -> observePendingMessages()
-                    1 -> observeAllChats()
+                    0 -> observePendingConversations()
+                    1 -> observeAllConversations()
                 }
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
@@ -86,36 +89,36 @@ class MainActivity : AppCompatActivity() {
         binding.fabMarkAllRead.setOnClickListener {
             MaterialAlertDialogBuilder(this)
                 .setTitle("Mark all as read?")
-                .setMessage("This will send read receipts for all pending messages.")
+                .setMessage("This will send read receipts for all pending conversations.")
                 .setPositiveButton("Mark All Read") { _, _ -> markAllAsRead() }
                 .setNegativeButton("Cancel", null)
                 .show()
         }
     }
 
-    private fun observeMessages() {
+    private fun observeConversations() {
         when (binding.tabLayout.selectedTabPosition) {
-            0 -> observePendingMessages()
-            1 -> observeAllChats()
+            0 -> observePendingConversations()
+            1 -> observeAllConversations()
         }
     }
 
-    private fun observePendingMessages() {
-        dao.getPendingMessages().observe(this) { messages ->
-            adapter.submitList(messages)
-            updateEmptyState(messages)
+    private fun observePendingConversations() {
+        conversationDao.getPendingConversations().observe(this) { conversations ->
+            conversationAdapter.submitList(conversations)
+            updateEmptyState(conversations)
         }
     }
 
-    private fun observeAllChats() {
-        dao.getRecentHistory().observe(this) { messages ->
-            adapter.submitList(messages)
-            updateEmptyState(messages)
+    private fun observeAllConversations() {
+        conversationDao.getAllConversations().observe(this) { conversations ->
+            conversationAdapter.submitList(conversations)
+            updateEmptyState(conversations)
         }
     }
 
-    private fun updateEmptyState(messages: List<Message>?) {
-        if (messages.isNullOrEmpty()) {
+    private fun updateEmptyState(conversations: List<ConversationEntity>?) {
+        if (conversations.isNullOrEmpty()) {
             binding.emptyState.visibility = View.VISIBLE
             binding.recyclerView.visibility = View.GONE
             binding.emptyText.text = if (binding.tabLayout.selectedTabPosition == 0) {
@@ -129,27 +132,41 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun markAsRead(message: Message) {
+    private fun openConversation(conversation: ConversationEntity) {
+        val intent = Intent(this, ConversationDetailActivity::class.java).apply {
+            putExtra(ConversationDetailActivity.EXTRA_CONVERSATION_ID, conversation.id)
+        }
+        startActivity(intent)
+    }
+
+    private fun openConversationForReply(conversation: ConversationEntity) {
+        openConversation(conversation)
+    }
+
+    private fun markConversationAsRead(conversation: ConversationEntity) {
         lifecycleScope.launch {
-            dao.updateStatus(message.id, MessageStatus.READ_SENT)
-            openWhatsAppChat(message)
-            Snackbar.make(binding.root, "Read receipt sent to ${message.senderName}", Snackbar.LENGTH_SHORT).show()
+            messageDao.updateStatusByConversation(conversation.id, MessageStatus.READ_SENT)
+            conversationDao.updateStatus(conversation.id, MessageStatus.READ_SENT)
+            openWhatsAppChat(conversation)
+            Snackbar.make(binding.root, "Read receipt sent to ${conversation.chatTitle}", Snackbar.LENGTH_SHORT).show()
         }
     }
 
-    private fun dismissMessage(message: Message) {
+    private fun dismissConversation(conversation: ConversationEntity) {
         lifecycleScope.launch {
-            dao.updateStatus(message.id, MessageStatus.DISMISSED)
+            messageDao.updateStatusByConversation(conversation.id, MessageStatus.DISMISSED)
+            conversationDao.updateStatus(conversation.id, MessageStatus.DISMISSED)
             Snackbar.make(binding.root, "Dismissed - no read receipt sent", Snackbar.LENGTH_SHORT).show()
         }
     }
 
-    private fun openWhatsAppChat(message: Message) {
+    private fun openWhatsAppChat(conversation: ConversationEntity) {
         lifecycleScope.launch {
-            dao.updateStatus(message.id, MessageStatus.READ_SENT)
+            messageDao.updateStatusByConversation(conversation.id, MessageStatus.READ_SENT)
+            conversationDao.updateStatus(conversation.id, MessageStatus.READ_SENT)
         }
 
-        val intent = packageManager.getLaunchIntentForPackage(message.packageName)
+        val intent = packageManager.getLaunchIntentForPackage(conversation.packageName)
         if (intent != null) {
             startActivity(intent)
         } else {
@@ -159,11 +176,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun markAllAsRead() {
         lifecycleScope.launch {
-            val pending = dao.getPendingMessagesSync()
-            pending.forEach { message ->
-                dao.updateStatus(message.id, MessageStatus.READ_SENT)
+            val pending = conversationDao.getPendingConversationsSync()
+            pending.forEach { conversation ->
+                messageDao.updateStatusByConversation(conversation.id, MessageStatus.READ_SENT)
+                conversationDao.updateStatus(conversation.id, MessageStatus.READ_SENT)
             }
-            Snackbar.make(binding.root, "${pending.size} messages marked as read", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root, "${pending.size} conversations marked as read", Snackbar.LENGTH_SHORT).show()
         }
     }
 
@@ -211,7 +229,8 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.action_clear_history -> {
                 lifecycleScope.launch {
-                    dao.clearHistory()
+                    conversationDao.clearHistory()
+                    messageDao.clearHistory()
                     Snackbar.make(binding.root, "History cleared", Snackbar.LENGTH_SHORT).show()
                 }
                 true

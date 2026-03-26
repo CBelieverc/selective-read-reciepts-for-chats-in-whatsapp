@@ -10,20 +10,20 @@ import androidx.room.Update
 @Dao
 interface MessageDao {
 
+    @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
+    fun getMessagesForConversation(conversationId: String): LiveData<List<Message>>
+
+    @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
+    suspend fun getMessagesForConversationSync(conversationId: String): List<Message>
+
     @Query("SELECT * FROM messages WHERE status = 'PENDING' ORDER BY timestamp DESC")
     fun getPendingMessages(): LiveData<List<Message>>
 
     @Query("SELECT * FROM messages WHERE status = 'PENDING' ORDER BY timestamp DESC")
     suspend fun getPendingMessagesSync(): List<Message>
 
-    @Query("SELECT * FROM messages WHERE chatKey = :chatKey AND status = 'PENDING' ORDER BY timestamp DESC")
-    fun getPendingMessagesByChat(chatKey: String): LiveData<List<Message>>
-
     @Query("SELECT * FROM messages WHERE status != 'PENDING' ORDER BY timestamp DESC LIMIT :limit")
-    fun getRecentHistory(limit: Int = 50): LiveData<List<Message>>
-
-    @Query("SELECT DISTINCT chatKey, senderName, isGroupChat FROM messages WHERE status = 'PENDING' ORDER BY MAX(timestamp) DESC")
-    fun getPendingChats(): LiveData<List<ChatSummary>>
+    fun getRecentHistory(limit: Int = 100): LiveData<List<Message>>
 
     @Query("SELECT * FROM messages WHERE notificationKey = :notificationKey LIMIT 1")
     suspend fun findByNotificationKey(notificationKey: String): Message?
@@ -37,8 +37,8 @@ interface MessageDao {
     @Query("UPDATE messages SET status = :status WHERE id = :messageId")
     suspend fun updateStatus(messageId: Long, status: MessageStatus)
 
-    @Query("UPDATE messages SET status = :status WHERE chatKey = :chatKey AND status = 'PENDING'")
-    suspend fun updateStatusByChat(chatKey: String, status: MessageStatus)
+    @Query("UPDATE messages SET status = :status WHERE conversationId = :conversationId AND status = 'PENDING'")
+    suspend fun updateStatusByConversation(conversationId: String, status: MessageStatus)
 
     @Query("DELETE FROM messages WHERE timestamp < :olderThan")
     suspend fun deleteOlderThan(olderThan: Long)
@@ -50,8 +50,36 @@ interface MessageDao {
     fun getPendingCount(): LiveData<Int>
 }
 
-data class ChatSummary(
-    val chatKey: String,
-    val senderName: String,
-    val isGroupChat: Boolean
-)
+@Dao
+interface ConversationDao {
+
+    @Query("SELECT * FROM conversations WHERE status = 'PENDING' ORDER BY lastMessageTimestamp DESC")
+    fun getPendingConversations(): LiveData<List<ConversationEntity>>
+
+    @Query("SELECT * FROM conversations WHERE status = 'PENDING' ORDER BY lastMessageTimestamp DESC")
+    suspend fun getPendingConversationsSync(): List<ConversationEntity>
+
+    @Query("SELECT * FROM conversations ORDER BY lastMessageTimestamp DESC LIMIT :limit")
+    fun getAllConversations(limit: Int = 50): LiveData<List<ConversationEntity>>
+
+    @Query("SELECT * FROM conversations WHERE id = :id")
+    suspend fun getById(id: String): ConversationEntity?
+
+    @Query("SELECT * FROM conversations WHERE id = :id")
+    fun getByIdLive(id: String): LiveData<ConversationEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdate(conversation: ConversationEntity)
+
+    @Query("UPDATE conversations SET status = :status WHERE id = :conversationId")
+    suspend fun updateStatus(conversationId: String, status: MessageStatus)
+
+    @Query("UPDATE conversations SET status = 'READ_SENT'")
+    suspend fun markAllAsRead()
+
+    @Query("DELETE FROM conversations WHERE status != 'PENDING'")
+    suspend fun clearHistory()
+
+    @Query("SELECT COUNT(*) FROM conversations WHERE status = 'PENDING'")
+    fun getPendingCount(): LiveData<Int>
+}

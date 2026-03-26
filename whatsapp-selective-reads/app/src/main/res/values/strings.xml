@@ -9,4 +9,12 @@
     <string name="dismiss">Dismiss</string>
     <string name="open_chat">Open Chat</string>
     <string name="mark_all_read">Mark All Read</string>
+    <string name="reply_hint">Type a reply (read receipt stays OFF)...</string>
+    <string name="send_reply">Send</string>
+    <string name="download_media">Download to Device</string>
+    <string name="media_not_available">Media file not available</string>
+    <string name="reply_sent">Reply sent (read receipt OFF)</string>
+    <string name="reply_failed">Failed to send reply</string>
+    <string name="read_receipt_sent">Read receipt sent</string>
+    <string name="dismissed_no_receipt">Dismissed - no read receipt sent</string>
 </resources>
