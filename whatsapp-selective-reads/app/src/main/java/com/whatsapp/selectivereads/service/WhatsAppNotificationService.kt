@@ -1,14 +1,12 @@
 package com.whatsapp.selectivereads.service
 
 import android.app.Notification
-import android.app.RemoteInput
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
-import androidx.core.app.Person
 import com.whatsapp.selectivereads.WhatsAppSelectiveReadsApp
 import com.whatsapp.selectivereads.data.ConversationEntity
 import com.whatsapp.selectivereads.data.Message
@@ -20,6 +18,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import android.util.Base64 as AndroidBase64
 
 class WhatsAppNotificationService : NotificationListenerService() {
 
@@ -62,12 +61,7 @@ class WhatsAppNotificationService : NotificationListenerService() {
         val chatKey = extractChatKey(sbn)
         val conversationId = "${packageName}:${chatKey}"
 
-        val senderName = if (isGroupChat) {
-            val parts = title.split(":")
-            if (parts.size >= 2) parts[0].trim() else title
-        } else {
-            title
-        }
+        val chatTitle = if (isGroupChat) title else title
 
         val replyAction = extractReplyAction(notification)
         val hasReplyAction = replyAction != null
@@ -79,74 +73,106 @@ class WhatsAppNotificationService : NotificationListenerService() {
             val messageDao = db.messageDao()
             val conversationDao = db.conversationDao()
 
-            val messagingStyle = NotificationCompat.MessagingStyle.extractMessagingStyle(notification)
-            val mediaBitmap = notification.getLargeIcon()?.loadDrawable(this@WhatsAppNotificationService)
-                ?.let { drawable ->
-                    val bitmap = drawable as? Bitmap
-                    bitmap
-                }
+            val messagingStyle = try {
+                NotificationCompat.MessagingStyle.extractMessagingStyle(notification)
+            } catch (e: Exception) { null }
 
             if (messagingStyle != null) {
                 val messages = messagingStyle.messages
+                val conversationUser = messagingStyle.conversationTitle?.toString() ?: chatTitle
+
                 if (messages != null && messages.isNotEmpty()) {
                     for (msg in messages) {
-                        val msgText = msg.text?.toString() ?: continue
-                        val msgSender = msg.senderPerson?.name?.toString() ?: senderName
+                        val msgText = msg.text?.toString() ?: ""
+                        val msgPerson = msg.senderPerson
+                        val msgSender = if (msgPerson != null) {
+                            msgPerson.name?.toString() ?: chatTitle
+                        } else {
+                            if (isGroupChat) {
+                                val parts = title.split(":")
+                                if (parts.size >= 2) parts[0].trim() else title
+                            } else {
+                                chatTitle
+                            }
+                        }
+
                         val msgKey = "${conversationId}:${msg.timestamp}"
 
                         val existing = messageDao.findByNotificationKey(msgKey)
                         if (existing != null) continue
 
-                        val mediaData = msg.data?.let { uri ->
-                            val mimeType = msg.dataMimeType
-                            if (mimeType != null && uri.isNotEmpty()) {
-                                saveMediaToInternal(uri, mimeType, conversationId, msg.timestamp)
-                            } else null
+                        var hasMedia = false
+                        var mediaType: String? = null
+                        var mediaUri: String? = null
+                        var audioDuration: Long = 0
+
+                        val msgData = msg.data
+                        val msgDataMimeType = msg.dataMimeType
+                        if (msgData != null && msgDataMimeType != null && msgData.isNotEmpty()) {
+                            hasMedia = true
+                            mediaType = msgDataMimeType
+
+                            val saved = saveMediaToInternal(msgData, msgDataMimeType, conversationId, msg.timestamp)
+                            if (saved != null) {
+                                mediaUri = saved
+                            }
+
+                            if (msgDataMimeType.startsWith("audio/")) {
+                                audioDuration = extractAudioDuration(msgText)
+                            }
                         }
+
+                        if (msgText.isEmpty() && !hasMedia) continue
 
                         val message = Message(
                             notificationKey = msgKey,
                             packageName = packageName,
                             conversationId = conversationId,
-                            senderName = msgSender.toString(),
-                            messageText = msgText,
+                            senderName = msgSender,
+                            messageText = if (msgText.isEmpty() && hasMedia) getMediaLabel(mediaType) else msgText,
                             chatKey = chatKey,
                             isGroupChat = isGroupChat,
                             timestamp = msg.timestamp,
-                            hasMedia = mediaData != null,
-                            mediaType = mediaData?.first,
-                            mediaUri = mediaData?.second
+                            hasMedia = hasMedia,
+                            mediaType = mediaType,
+                            mediaUri = mediaUri,
+                            audioDurationMs = audioDuration
                         )
                         messageDao.insert(message)
                     }
                 } else {
                     handleSingleMessage(
                         messageDao, notificationKey, packageName, conversationId,
-                        senderName, text, chatKey, isGroupChat, sbn.postTime, extras
+                        chatTitle, text, chatKey, isGroupChat, sbn.postTime
                     )
                 }
             } else {
                 handleSingleMessage(
                     messageDao, notificationKey, packageName, conversationId,
-                    senderName, text, chatKey, isGroupChat, sbn.postTime, extras
+                    chatTitle, text, chatKey, isGroupChat, sbn.postTime
                 )
             }
 
-            val unreadCount = messageDao.getMessagesForConversationSync(conversationId)
-                .count { it.status == MessageStatus.PENDING }
+            val unreadCount = try {
+                messageDao.getMessagesForConversationSync(conversationId)
+                    .count { it.status == MessageStatus.PENDING }
+            } catch (e: Exception) { 0 }
 
+            val lastMsgText = text
+
+            val existingConv = conversationDao.getById(conversationId)
             val conversation = ConversationEntity(
                 id = conversationId,
                 packageName = packageName,
-                chatTitle = if (isGroupChat) title else senderName,
+                chatTitle = chatTitle,
                 isGroupChat = isGroupChat,
-                lastMessagePreview = text,
+                lastMessagePreview = lastMsgText,
                 lastMessageTimestamp = sbn.postTime,
                 unreadCount = unreadCount,
                 notificationKey = notificationKey,
-                hasReplyAction = hasReplyAction,
-                replyActionIndex = replyActionIndex,
-                remoteInputResultKey = remoteInputResultKey
+                hasReplyAction = hasReplyAction || (existingConv?.hasReplyAction == true),
+                replyActionIndex = if (hasReplyAction) replyActionIndex else (existingConv?.replyActionIndex ?: -1),
+                remoteInputResultKey = remoteInputResultKey ?: existingConv?.remoteInputResultKey
             )
             conversationDao.insertOrUpdate(conversation)
         }
@@ -165,14 +191,15 @@ class WhatsAppNotificationService : NotificationListenerService() {
         text: String,
         chatKey: String,
         isGroupChat: Boolean,
-        postTime: Long,
-        extras: Bundle
+        postTime: Long
     ) {
         val existing = dao.findByNotificationKey(notificationKey)
-        if (existing != null && existing.status == MessageStatus.PENDING) {
+        if (existing != null) {
             dao.update(existing.copy(messageText = text, timestamp = postTime))
             return
         }
+
+        if (text.isEmpty()) return
 
         val message = Message(
             notificationKey = notificationKey,
@@ -205,26 +232,53 @@ class WhatsAppNotificationService : NotificationListenerService() {
     }
 
     private fun saveMediaToInternal(
-        dataUri: String,
+        data: String,
         mimeType: String,
         conversationId: String,
         timestamp: Long
-    ): Pair<String, String>? {
+    ): String? {
         return try {
             val ext = when {
                 mimeType.startsWith("image/") -> ".jpg"
                 mimeType.startsWith("video/") -> ".mp4"
                 mimeType.startsWith("audio/") -> ".ogg"
+                mimeType.startsWith("application/pdf") -> ".pdf"
+                mimeType.startsWith("application/") -> ".bin"
                 else -> ".bin"
             }
             val mediaDir = File(filesDir, "media/${conversationId.hashCode()}")
             mediaDir.mkdirs()
             val file = File(mediaDir, "${timestamp}${ext}")
-            val bytes = android.util.Base64.decode(dataUri, android.util.Base64.DEFAULT)
-            FileOutputStream(file).use { it.write(bytes) }
-            Pair(mimeType, file.absolutePath)
+            try {
+                val bytes = AndroidBase64.decode(data, AndroidBase64.DEFAULT)
+                FileOutputStream(file).use { it.write(bytes) }
+            } catch (e: Exception) {
+                FileOutputStream(file).use { it.write(data.toByteArray()) }
+            }
+            file.absolutePath
         } catch (e: Exception) {
+            e.printStackTrace()
             null
+        }
+    }
+
+    private fun extractAudioDuration(text: String): Long {
+        val durationPattern = Regex("(\\d+)[\"']?\\s*(?:sec|second|min|minute)?", RegexOption.IGNORE_CASE)
+        val match = durationPattern.find(text)
+        return try {
+            val value = match?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 0L
+            if (text.contains("min", ignoreCase = true)) value * 60_000 else value * 1000
+        } catch (e: Exception) { 0L }
+    }
+
+    private fun getMediaLabel(mediaType: String?): String {
+        return when {
+            mediaType == null -> "\uD83D\uDCCE Attachment"
+            mediaType.startsWith("image/") -> "\uD83D\uDDBC Photo"
+            mediaType.startsWith("video/") -> "\uD83C\uDFA5 Video"
+            mediaType.startsWith("audio/") -> "\uD83C\uDFA4 Audio"
+            mediaType.startsWith("application/pdf") -> "\uD83D\uDCC4 PDF"
+            else -> "\uD83D\uDCCE Document"
         }
     }
 

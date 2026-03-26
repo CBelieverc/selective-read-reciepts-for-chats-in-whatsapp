@@ -1,8 +1,6 @@
 package com.whatsapp.selectivereads.data
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
-import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "messages")
@@ -24,7 +22,9 @@ data class Message(
     val mediaType: String? = null,
     val mediaUri: String? = null,
     val mediaBitmapPath: String? = null,
-    val isMuted: Boolean = false
+    val isMuted: Boolean = false,
+    val audioDurationMs: Long = 0,
+    val quotedMessageText: String? = null
 )
 
 enum class MessageStatus {
