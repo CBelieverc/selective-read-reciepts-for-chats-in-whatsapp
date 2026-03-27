@@ -409,20 +409,24 @@ class ConversationDetailActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val service = WhatsAppNotificationService.instance
-                var replySuccess = false
-
-                if (service != null && conv.hasReplyAction) {
-                    replySuccess = ReplyHelper.sendReply(
-                        service = service,
-                        notificationKey = conv.notificationKey,
-                        conversationId = conversationId,
-                        replyText = text,
-                        remoteInputResultKey = conv.remoteInputResultKey,
-                        replyActionIndex = conv.replyActionIndex
-                    )
-                } else if (service == null) {
+                if (service == null) {
                     Snackbar.make(binding.root, "Notification listener not connected. Grant permission in Settings.", Snackbar.LENGTH_LONG).show()
+                    return@lifecycleScope
                 }
+
+                if (!conv.hasReplyAction) {
+                    Snackbar.make(binding.root, "No reply action available", Snackbar.LENGTH_SHORT).show()
+                    return@lifecycleScope
+                }
+
+                val replySuccess = ReplyHelper.sendReply(
+                    service = service,
+                    notificationKey = conv.notificationKey,
+                    conversationId = conversationId,
+                    replyText = text,
+                    remoteInputResultKey = conv.remoteInputResultKey,
+                    replyActionIndex = conv.replyActionIndex
+                )
 
                 val replyMsg = Message(
                     notificationKey = "${conv.notificationKey}:reply:${System.currentTimeMillis()}",
