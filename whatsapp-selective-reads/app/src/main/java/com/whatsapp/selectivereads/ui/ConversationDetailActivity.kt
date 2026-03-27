@@ -262,8 +262,8 @@ class ConversationDetailActivity : AppCompatActivity() {
 
             binding.statusText.text = when (conv.status) {
                 MessageStatus.PENDING -> "Read receipt NOT sent - tap to manage"
-                MessageStatus.READ_SENT -> "Read receipt sent"
-                MessageStatus.REPLIED -> "Replied - read receipt OFF"
+                MessageStatus.READ_SENT -> "Read receipt sent (blue ticks)"
+                MessageStatus.REPLIED -> "Replied (WhatsApp may send blue ticks)"
                 MessageStatus.DISMISSED -> "Dismissed - read receipt NOT sent"
                 MessageStatus.ARCHIVED -> "Archived"
             }
@@ -403,31 +403,29 @@ class ConversationDetailActivity : AppCompatActivity() {
 
         val conv = conversation ?: return
 
+        // WhatsApp now sends blue ticks for ALL replies, including notification inline replies.
+        // Our RemoteInput approach will also trigger blue ticks.
+        // We still provide reply functionality for convenience.
         binding.btnSend.isEnabled = false
         binding.sendProgress.visibility = View.VISIBLE
 
         lifecycleScope.launch {
             try {
                 val service = WhatsAppNotificationService.instance
-                if (service == null) {
-                    Snackbar.make(binding.root, "Notification listener not connected. Grant permission in Settings.", Snackbar.LENGTH_LONG).show()
-                    return@lifecycleScope
+                var replySuccess = false
+
+                if (service != null) {
+                    replySuccess = ReplyHelper.sendReply(
+                        service = service,
+                        notificationKey = conv.notificationKey,
+                        conversationId = conversationId,
+                        replyText = text,
+                        remoteInputResultKey = conv.remoteInputResultKey,
+                        replyActionIndex = conv.replyActionIndex
+                    )
                 }
 
-                if (!conv.hasReplyAction) {
-                    Snackbar.make(binding.root, "No reply action available", Snackbar.LENGTH_SHORT).show()
-                    return@lifecycleScope
-                }
-
-                val replySuccess = ReplyHelper.sendReply(
-                    service = service,
-                    notificationKey = conv.notificationKey,
-                    conversationId = conversationId,
-                    replyText = text,
-                    remoteInputResultKey = conv.remoteInputResultKey,
-                    replyActionIndex = conv.replyActionIndex
-                )
-
+                // Save the message locally regardless of whether RemoteInput worked
                 val replyMsg = Message(
                     notificationKey = "${conv.notificationKey}:reply:${System.currentTimeMillis()}",
                     packageName = conv.packageName,
@@ -455,9 +453,15 @@ class ConversationDetailActivity : AppCompatActivity() {
                 }
 
                 if (replySuccess) {
-                    Snackbar.make(binding.root, "Sent (read receipt OFF)", Snackbar.LENGTH_SHORT).show()
+                    Snackbar.make(binding.root, "Reply sent (note: WhatsApp may send blue tick)", Snackbar.LENGTH_SHORT).show()
                 } else {
-                    Snackbar.make(binding.root, "Saved locally", Snackbar.LENGTH_SHORT).show()
+                    // If RemoteInput failed, offer to open WhatsApp directly
+                    Snackbar.make(binding.root, "Saved locally. Tap to open WhatsApp and send.", Snackbar.LENGTH_LONG).apply {
+                        setAction("Open WhatsApp") {
+                            openWhatsAppChatWithText(text)
+                        }
+                        show()
+                    }
                 }
             } catch (e: Exception) {
                 Snackbar.make(binding.root, "Error: ${e.message}", Snackbar.LENGTH_SHORT).show()
@@ -465,6 +469,41 @@ class ConversationDetailActivity : AppCompatActivity() {
                 binding.btnSend.isEnabled = true
                 binding.sendProgress.visibility = View.GONE
             }
+        }
+    }
+
+    private fun openWhatsAppChatWithText(text: String) {
+        val conv = conversation ?: return
+        try {
+            // Save message locally before opening WhatsApp
+            lifecycleScope.launch {
+                val msg = Message(
+                    notificationKey = "${conv.notificationKey}:reply:${System.currentTimeMillis()}",
+                    packageName = conv.packageName,
+                    conversationId = conversationId,
+                    senderName = "You",
+                    messageText = text,
+                    chatKey = conversationId.hashCode().toString(),
+                    isGroupChat = conv.isGroupChat,
+                    timestamp = System.currentTimeMillis(),
+                    status = MessageStatus.REPLIED
+                )
+                messageDao.insert(msg)
+                conversationDao.updateStatus(conversationId, MessageStatus.REPLIED)
+            }
+
+            // Open WhatsApp with the message pre-filled
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, text)
+                setPackage(conv.packageName)
+            }
+            startActivity(intent)
+
+            binding.inputMessage.text?.clear()
+            Snackbar.make(binding.root, "Opened WhatsApp (blue tick will be sent)", Snackbar.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Snackbar.make(binding.root, "Could not open WhatsApp", Snackbar.LENGTH_SHORT).show()
         }
     }
 
