@@ -185,7 +185,7 @@ class MessageBubbleAdapter(
                 binding.tickIndicator.setImageResource(
                     when (message.status) {
                         MessageStatus.READ_SENT -> R.drawable.tick_read
-                        MessageStatus.REPLIED -> R.drawable.tick_read
+                        MessageStatus.REPLIED -> R.drawable.tick_delivered
                         MessageStatus.DISMISSED -> R.drawable.tick_delivered
                         MessageStatus.PENDING -> R.drawable.tick_sent
                         MessageStatus.ARCHIVED -> R.drawable.tick_sent

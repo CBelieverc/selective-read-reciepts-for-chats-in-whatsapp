@@ -583,6 +583,13 @@ class ConversationDetailActivity : AppCompatActivity() {
     private fun sendMediaToWhatsApp(uri: Uri, mimeType: String) {
         val conv = conversation ?: return
         try {
+            // Validate the URI points to an existing file
+            val sourceFile = File(uri.path)
+            if (!sourceFile.exists()) {
+                Snackbar.make(binding.root, "Media file not found", Snackbar.LENGTH_SHORT).show()
+                return
+            }
+
             val sendIntent = Intent(Intent.ACTION_SEND).apply {
                 type = mimeType
                 putExtra(Intent.EXTRA_STREAM, uri)
