@@ -108,3 +108,4 @@ The app is designed as a **pixel-perfect WhatsApp clone**:
 | 2026-03-26 | UI redesign: WhatsApp chat clone (bubbles, ticks, input bar, wallpaper) |
 | 2026-03-26 | Full history capture, audio playback, context menus, working keyboard |
 | 2026-03-27 | Added comprehensive README.md documenting both projects |
+| 2026-03-28 | Fixed reply sending, media download, and attachment handling (camera/gallery/audio/documents) |
