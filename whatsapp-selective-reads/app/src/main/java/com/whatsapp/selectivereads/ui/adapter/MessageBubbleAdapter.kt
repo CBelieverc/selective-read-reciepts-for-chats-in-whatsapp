@@ -1,6 +1,8 @@
 package com.whatsapp.selectivereads.ui.adapter
 
+import android.content.Context
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -13,6 +15,8 @@ import com.whatsapp.selectivereads.data.MessageStatus
 import com.whatsapp.selectivereads.databinding.ItemDateDividerBinding
 import com.whatsapp.selectivereads.databinding.ItemMessageBubbleBinding
 import com.whatsapp.selectivereads.service.AudioPlayerManager
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -42,6 +46,34 @@ class MessageBubbleAdapter(
             R.color.wa_sender_1, R.color.wa_sender_2, R.color.wa_sender_3,
             R.color.wa_sender_4, R.color.wa_sender_5, R.color.wa_sender_6
         )
+
+        fun resolveMediaPath(mediaPath: String, mediaType: String, context: Context): String? {
+            val file = File(mediaPath)
+            if (file.exists() && file.length() > 0) return mediaPath
+
+            if (mediaPath.startsWith("content://") || mediaPath.startsWith("file://")) {
+                try {
+                    val uri = Uri.parse(mediaPath)
+                    val ext = when {
+                        mediaType.startsWith("image/") -> ".jpg"
+                        mediaType.startsWith("video/") -> ".mp4"
+                        mediaType.startsWith("audio/") -> ".ogg"
+                        else -> ".bin"
+                    }
+                    val tempFile = File(context.cacheDir, "media_${System.currentTimeMillis()}$ext")
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        FileOutputStream(tempFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    if (tempFile.exists() && tempFile.length() > 0) return tempFile.absolutePath
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            return null
+        }
+    }
     }
 
     fun submitChatList(newItems: List<ChatListItem>) {
@@ -220,9 +252,14 @@ class MessageBubbleAdapter(
 
                     val filePath = message.mediaUri
                     if (filePath != null) {
-                        val bitmap = BitmapFactory.decodeFile(filePath)
-                        if (bitmap != null) {
-                            binding.mediaImage.setImageBitmap(bitmap)
+                        val resolvedPath = resolveMediaPath(filePath, message.mediaType, binding.root.context)
+                        if (resolvedPath != null) {
+                            val bitmap = BitmapFactory.decodeFile(resolvedPath)
+                            if (bitmap != null) {
+                                binding.mediaImage.setImageBitmap(bitmap)
+                            } else {
+                                binding.mediaImage.setImageResource(android.R.color.darker_gray)
+                            }
                         } else {
                             binding.mediaImage.setImageResource(android.R.color.darker_gray)
                         }
@@ -257,7 +294,9 @@ class MessageBubbleAdapter(
         }
 
         private fun setupAudioPlayer(message: Message) {
-            val filePath = message.mediaUri ?: return
+            val rawPath = message.mediaUri ?: return
+            val filePath = resolveMediaPath(rawPath, message.mediaType ?: "audio/ogg", binding.root.context)
+            if (filePath == null) return
             val durationText = formatDuration(message.audioDurationMs)
             binding.audioDuration.text = durationText
 

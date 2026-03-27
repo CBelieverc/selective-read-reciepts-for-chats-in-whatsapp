@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.snackbar.Snackbar
@@ -28,6 +29,7 @@ class MediaViewerActivity : AppCompatActivity() {
         const val EXTRA_MESSAGE_TEXT = "message_text"
         const val EXTRA_SENDER_NAME = "sender_name"
         const val EXTRA_TIMESTAMP = "timestamp"
+        private const val TAG = "MediaViewerActivity"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,11 +49,15 @@ class MediaViewerActivity : AppCompatActivity() {
         setupToolbar(senderName)
         setupInfoPanel(senderName, messageText, timestamp)
 
-        val resolvedPath = resolveMediaPath(mediaPath)
+        Log.d(TAG, "Media path: $mediaPath, type: $mediaType")
+
+        val resolvedPath = resolveMediaPath(mediaPath, mediaType)
         if (resolvedPath != null) {
+            Log.d(TAG, "Resolved to: $resolvedPath")
             setupMediaDisplay(resolvedPath, mediaType)
             setupDownloadButton(resolvedPath, mediaType)
         } else {
+            Log.e(TAG, "Could not resolve media: $mediaPath")
             binding.mediaImageView.visibility = View.GONE
             binding.mediaNotAvailable.visibility = View.VISIBLE
             binding.mediaNotAvailable.text = "Media not available"
@@ -59,34 +65,58 @@ class MediaViewerActivity : AppCompatActivity() {
         }
     }
 
-    private fun resolveMediaPath(mediaPath: String): String? {
+    private fun resolveMediaPath(mediaPath: String, mediaType: String): String? {
+        // First, check if it's already a valid file path
         val file = File(mediaPath)
-        if (file.exists()) return mediaPath
+        if (file.exists() && file.length() > 0) return mediaPath
 
+        // Handle content:// URIs (WhatsApp notification media)
         if (mediaPath.startsWith("content://") || mediaPath.startsWith("file://")) {
-            try {
+            return try {
                 val uri = Uri.parse(mediaPath)
+                Log.d(TAG, "Trying to copy content URI: $uri")
+
                 val ext = when {
-                    mediaPath.contains("image") -> ".jpg"
-                    mediaPath.contains("video") -> ".mp4"
-                    mediaPath.contains("audio") -> ".ogg"
+                    mediaType.startsWith("image/") -> ".jpg"
+                    mediaType.startsWith("video/") -> ".mp4"
+                    mediaType.startsWith("audio/") -> ".ogg"
+                    mediaType.startsWith("application/pdf") -> ".pdf"
                     else -> ".bin"
                 }
+
                 val tempFile = File(cacheDir, "media_${System.currentTimeMillis()}$ext")
                 contentResolver.openInputStream(uri)?.use { input ->
                     FileOutputStream(tempFile).use { output ->
                         input.copyTo(output)
                     }
                 }
+
                 if (tempFile.exists() && tempFile.length() > 0) {
-                    return tempFile.absolutePath
+                    Log.d(TAG, "Copied to: ${tempFile.absolutePath}")
+                    tempFile.absolutePath
+                } else {
+                    Log.e(TAG, "Copied file is empty")
+                    null
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Failed to copy content URI: ${e.message}", e)
+                null
             }
         }
 
+        // Try as absolute path (maybe stored without content:// prefix)
+        val tryFile = File(mediaPath)
+        if (tryFile.isAbsolute && tryFile.exists()) return tryFile.absolutePath
+
+        // Try internal storage pattern from our saveContentUriToInternal
+        val internalFile = File(filesDir, "media/${conversationId()}/${File(mediaPath).name}")
+        if (internalFile.exists()) return internalFile.absolutePath
+
         return null
+    }
+
+    private fun conversationId(): String {
+        return intent.getStringExtra(EXTRA_MESSAGE_TEXT)?.hashCode()?.toString() ?: ""
     }
 
     private fun setupToolbar(senderName: String) {
