@@ -18,7 +18,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
-import android.util.Base64 as AndroidBase64
 
 class WhatsAppNotificationService : NotificationListenerService() {
 
@@ -123,8 +122,8 @@ class WhatsAppNotificationService : NotificationListenerService() {
                             hasMedia = true
                             mediaType = msgDataMimeType
 
-                            // For simplicity, we just use the URI or try to save it if it's content
-                            mediaUri = msgData.toString()
+                            val savedPath = saveContentUriToInternal(msgData, msgDataMimeType, conversationId, msg.timestamp)
+                            mediaUri = savedPath ?: msgData.toString()
 
                             if (msgDataMimeType.startsWith("audio/")) {
                                 audioDuration = extractAudioDuration(msgText)
@@ -240,8 +239,8 @@ class WhatsAppNotificationService : NotificationListenerService() {
         return null
     }
 
-    private fun saveMediaToInternal(
-        data: String,
+    private fun saveContentUriToInternal(
+        contentUri: android.net.Uri,
         mimeType: String,
         conversationId: String,
         timestamp: Long
@@ -258,13 +257,14 @@ class WhatsAppNotificationService : NotificationListenerService() {
             val mediaDir = File(filesDir, "media/${conversationId.hashCode()}")
             mediaDir.mkdirs()
             val file = File(mediaDir, "${timestamp}${ext}")
-            try {
-                val bytes = AndroidBase64.decode(data, AndroidBase64.DEFAULT)
-                FileOutputStream(file).use { it.write(bytes) }
-            } catch (e: Exception) {
-                FileOutputStream(file).use { it.write(data.toByteArray()) }
+
+            contentResolver.openInputStream(contentUri)?.use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output)
+                }
             }
-            file.absolutePath
+
+            if (file.exists() && file.length() > 0) file.absolutePath else null
         } catch (e: Exception) {
             e.printStackTrace()
             null

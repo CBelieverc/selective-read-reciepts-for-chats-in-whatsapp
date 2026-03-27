@@ -1,5 +1,6 @@
 package com.whatsapp.selectivereads.ui.adapter
 
+import android.graphics.BitmapFactory
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -215,8 +216,19 @@ class MessageBubbleAdapter(
             when {
                 message.mediaType.startsWith("image/") -> {
                     binding.mediaImage.visibility = View.VISIBLE
-                    binding.mediaImage.setImageResource(android.R.color.darker_gray)
                     binding.mediaImage.setOnClickListener { onMediaClick(message) }
+
+                    val filePath = message.mediaUri
+                    if (filePath != null) {
+                        val bitmap = BitmapFactory.decodeFile(filePath)
+                        if (bitmap != null) {
+                            binding.mediaImage.setImageBitmap(bitmap)
+                        } else {
+                            binding.mediaImage.setImageResource(android.R.color.darker_gray)
+                        }
+                    } else {
+                        binding.mediaImage.setImageResource(android.R.color.darker_gray)
+                    }
                 }
 
                 message.mediaType.startsWith("audio/") -> {

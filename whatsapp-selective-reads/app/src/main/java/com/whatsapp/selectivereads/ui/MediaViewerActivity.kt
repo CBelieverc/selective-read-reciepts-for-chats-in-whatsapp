@@ -13,6 +13,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.whatsapp.selectivereads.databinding.ActivityMediaViewerBinding
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -44,9 +45,48 @@ class MediaViewerActivity : AppCompatActivity() {
         val timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, System.currentTimeMillis())
 
         setupToolbar(senderName)
-        setupMediaDisplay(mediaPath, mediaType)
         setupInfoPanel(senderName, messageText, timestamp)
-        setupDownloadButton(mediaPath, mediaType)
+
+        val resolvedPath = resolveMediaPath(mediaPath)
+        if (resolvedPath != null) {
+            setupMediaDisplay(resolvedPath, mediaType)
+            setupDownloadButton(resolvedPath, mediaType)
+        } else {
+            binding.mediaImageView.visibility = View.GONE
+            binding.mediaNotAvailable.visibility = View.VISIBLE
+            binding.mediaNotAvailable.text = "Media not available"
+            binding.downloadButton.visibility = View.GONE
+        }
+    }
+
+    private fun resolveMediaPath(mediaPath: String): String? {
+        val file = File(mediaPath)
+        if (file.exists()) return mediaPath
+
+        if (mediaPath.startsWith("content://") || mediaPath.startsWith("file://")) {
+            try {
+                val uri = Uri.parse(mediaPath)
+                val ext = when {
+                    mediaPath.contains("image") -> ".jpg"
+                    mediaPath.contains("video") -> ".mp4"
+                    mediaPath.contains("audio") -> ".ogg"
+                    else -> ".bin"
+                }
+                val tempFile = File(cacheDir, "media_${System.currentTimeMillis()}$ext")
+                contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(tempFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                if (tempFile.exists() && tempFile.length() > 0) {
+                    return tempFile.absolutePath
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        return null
     }
 
     private fun setupToolbar(senderName: String) {
@@ -56,13 +96,6 @@ class MediaViewerActivity : AppCompatActivity() {
     }
 
     private fun setupMediaDisplay(mediaPath: String, mediaType: String) {
-        val file = File(mediaPath)
-        if (!file.exists()) {
-            binding.mediaImageView.visibility = View.GONE
-            binding.mediaNotAvailable.visibility = View.VISIBLE
-            return
-        }
-
         when {
             mediaType.startsWith("image/") -> {
                 binding.mediaImageView.visibility = View.VISIBLE
