@@ -1,10 +1,14 @@
 package com.whatsapp.selectivereads.ui
 
+import android.Manifest
 import android.animation.ObjectAnimator
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.ContextMenu
@@ -13,7 +17,10 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.PopupMenu
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -31,6 +38,7 @@ import com.whatsapp.selectivereads.ui.adapter.MessageBubbleAdapter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.Calendar
 
 class ConversationDetailActivity : AppCompatActivity() {
@@ -46,9 +54,36 @@ class ConversationDetailActivity : AppCompatActivity() {
     private var conversation: ConversationEntity? = null
     private var isAtBottom = true
     private var playingMessageId: Long = -1
+    private var cameraPhotoUri: Uri? = null
 
     companion object {
         const val EXTRA_CONVERSATION_ID = "conversation_id"
+    }
+
+    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && cameraPhotoUri != null) {
+            sendMediaToWhatsApp(cameraPhotoUri!!, "image/jpeg")
+        }
+    }
+
+    private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { sendMediaToWhatsApp(it, contentResolver.getType(it) ?: "image/*") }
+    }
+
+    private val documentLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { sendMediaToWhatsApp(it, contentResolver.getType(it) ?: "*/*") }
+    }
+
+    private val audioLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { sendMediaToWhatsApp(it, contentResolver.getType(it) ?: "audio/*") }
+    }
+
+    private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            launchCamera()
+        } else {
+            Snackbar.make(binding.root, "Camera permission denied", Snackbar.LENGTH_SHORT).show()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -175,8 +210,16 @@ class ConversationDetailActivity : AppCompatActivity() {
             popup.menu.add("Location")
             popup.menu.add("Contact")
             popup.setOnMenuItemClickListener { item ->
-                Snackbar.make(binding.root, "${item.title} - opens WhatsApp", Snackbar.LENGTH_SHORT).show()
-                openWhatsAppChat()
+                when (item.title) {
+                    "Document" -> documentLauncher.launch("*/*")
+                    "Camera" -> checkCameraPermissionAndLaunch()
+                    "Gallery" -> galleryLauncher.launch("image/*")
+                    "Audio" -> audioLauncher.launch("audio/*")
+                    "Location", "Contact" -> {
+                        Snackbar.make(binding.root, "${item.title} - requires WhatsApp", Snackbar.LENGTH_SHORT).show()
+                        openWhatsAppChat()
+                    }
+                }
                 true
             }
             popup.show()
@@ -184,8 +227,7 @@ class ConversationDetailActivity : AppCompatActivity() {
 
         // Camera button
         binding.btnCamera.setOnClickListener {
-            Snackbar.make(binding.root, "Camera - opens WhatsApp", Snackbar.LENGTH_SHORT).show()
-            openWhatsAppChat()
+            checkCameraPermissionAndLaunch()
         }
     }
 
@@ -513,6 +555,72 @@ class ConversationDetailActivity : AppCompatActivity() {
             putExtra(MediaViewerActivity.EXTRA_TIMESTAMP, message.timestamp)
         }
         startActivity(intent)
+    }
+
+    private fun checkCameraPermissionAndLaunch() {
+        when {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
+                launchCamera()
+            }
+            else -> {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        }
+    }
+
+    private fun launchCamera() {
+        try {
+            val cameraDir = File(cacheDir, "camera")
+            cameraDir.mkdirs()
+            val photoFile = File(cameraDir, "photo_${System.currentTimeMillis()}.jpg")
+            cameraPhotoUri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", photoFile)
+            cameraLauncher.launch(cameraPhotoUri)
+        } catch (e: Exception) {
+            Snackbar.make(binding.root, "Camera error: ${e.message}", Snackbar.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun sendMediaToWhatsApp(uri: Uri, mimeType: String) {
+        val conv = conversation ?: return
+        try {
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, uri)
+                setPackage(conv.packageName)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(sendIntent)
+
+            val mediaLabel = when {
+                mimeType.startsWith("image/") -> "\uD83D\uDDBC Photo"
+                mimeType.startsWith("video/") -> "\uD83C\uDFA5 Video"
+                mimeType.startsWith("audio/") -> "\uD83C\uDFA4 Audio"
+                else -> "\uD83D\uDCCE Document"
+            }
+
+            lifecycleScope.launch {
+                val msg = Message(
+                    notificationKey = "${conv.notificationKey}:media:${System.currentTimeMillis()}",
+                    packageName = conv.packageName,
+                    conversationId = conversationId,
+                    senderName = "You",
+                    messageText = mediaLabel,
+                    chatKey = conversationId.hashCode().toString(),
+                    isGroupChat = conv.isGroupChat,
+                    timestamp = System.currentTimeMillis(),
+                    hasMedia = true,
+                    mediaType = mimeType,
+                    mediaUri = uri.toString(),
+                    status = MessageStatus.REPLIED
+                )
+                messageDao.insert(msg)
+                conversationDao.updateStatus(conversationId, MessageStatus.REPLIED)
+            }
+
+            Snackbar.make(binding.root, "Sent via WhatsApp", Snackbar.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Snackbar.make(binding.root, "Could not open WhatsApp: ${e.message}", Snackbar.LENGTH_SHORT).show()
+        }
     }
 
     private fun showMoreOptions() {

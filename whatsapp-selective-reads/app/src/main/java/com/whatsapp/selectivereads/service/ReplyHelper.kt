@@ -39,13 +39,10 @@ object ReplyHelper {
             val results = Bundle()
             results.putCharSequence(remoteInput.resultKey, replyText)
 
-            RemoteInput.addResultsToIntent(remoteInputs, Intent(), results)
+            val fillInIntent = Intent()
+            RemoteInput.addResultsToIntent(remoteInputs, fillInIntent, results)
 
-            val replyIntent = Intent()
-            replyIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            RemoteInput.addResultsToIntent(remoteInputs, replyIntent, results)
-
-            action.actionIntent.send(service, 0, replyIntent)
+            action.actionIntent.send(service, 0, fillInIntent)
 
             kotlinx.coroutines.runBlocking {
                 val db = WhatsAppSelectiveReadsApp.instance.database
