@@ -31,6 +31,9 @@ class WhatsAppNotificationService : NotificationListenerService() {
         const val ACTION_SEND_REPLY = "com.whatsapp.selectivereads.ACTION_SEND_REPLY"
         const val EXTRA_CONVERSATION_ID = "conversation_id"
         const val EXTRA_NOTIFICATION_KEY = "notification_key"
+
+        var instance: WhatsAppNotificationService? = null
+            private set
     }
 
     override fun onCreate() {
@@ -39,6 +42,16 @@ class WhatsAppNotificationService : NotificationListenerService() {
     }
 
     override fun onBind(intent: Intent?) = super.onBind(intent)
+
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        instance = this
+    }
+
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        instance = null
+    }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (!prefs.isEnabled()) return
@@ -289,6 +302,7 @@ class WhatsAppNotificationService : NotificationListenerService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        instance = null
         scope.cancel()
     }
 }

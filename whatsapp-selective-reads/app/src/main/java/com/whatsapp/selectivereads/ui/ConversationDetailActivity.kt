@@ -366,7 +366,7 @@ class ConversationDetailActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val service = getSystemService(NOTIFICATION_SERVICE) as? WhatsAppNotificationService
+                val service = WhatsAppNotificationService.instance
                 var replySuccess = false
 
                 if (service != null && conv.hasReplyAction) {
@@ -378,6 +378,8 @@ class ConversationDetailActivity : AppCompatActivity() {
                         remoteInputResultKey = conv.remoteInputResultKey,
                         replyActionIndex = conv.replyActionIndex
                     )
+                } else if (service == null) {
+                    Snackbar.make(binding.root, "Notification listener not connected. Grant permission in Settings.", Snackbar.LENGTH_LONG).show()
                 }
 
                 val replyMsg = Message(
