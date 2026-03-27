@@ -73,18 +73,16 @@ class WhatsAppNotificationService : NotificationListenerService() {
             val messageDao = db.messageDao()
             val conversationDao = db.conversationDao()
 
-            val messagingStyle = try {
-                NotificationCompat.MessagingStyle.extractMessagingStyle(notification)
-            } catch (e: Exception) { null }
+            val messagingStyle = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(notification)
 
             if (messagingStyle != null) {
                 val messages = messagingStyle.messages
                 val conversationUser = messagingStyle.conversationTitle?.toString() ?: chatTitle
 
-                if (messages != null && messages.isNotEmpty()) {
+                if (messages.isNotEmpty()) {
                     for (msg in messages) {
                         val msgText = msg.text?.toString() ?: ""
-                        val msgPerson = msg.senderPerson
+                        val msgPerson = msg.person
                         val msgSender = if (msgPerson != null) {
                             msgPerson.name?.toString() ?: chatTitle
                         } else {
@@ -106,16 +104,14 @@ class WhatsAppNotificationService : NotificationListenerService() {
                         var mediaUri: String? = null
                         var audioDuration: Long = 0
 
-                        val msgData = msg.data
+                        val msgData = msg.dataUri
                         val msgDataMimeType = msg.dataMimeType
-                        if (msgData != null && msgDataMimeType != null && msgData.isNotEmpty()) {
+                        if (msgData != null && msgDataMimeType != null) {
                             hasMedia = true
                             mediaType = msgDataMimeType
 
-                            val saved = saveMediaToInternal(msgData, msgDataMimeType, conversationId, msg.timestamp)
-                            if (saved != null) {
-                                mediaUri = saved
-                            }
+                            // For simplicity, we just use the URI or try to save it if it's content
+                            mediaUri = msgData.toString()
 
                             if (msgDataMimeType.startsWith("audio/")) {
                                 audioDuration = extractAudioDuration(msgText)

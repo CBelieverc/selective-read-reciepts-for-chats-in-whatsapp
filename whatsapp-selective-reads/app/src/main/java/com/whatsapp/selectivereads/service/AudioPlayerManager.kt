@@ -53,13 +53,13 @@ class AudioPlayerManager {
                 setDataSource(filePath)
                 prepare()
                 setOnCompletionListener {
-                    isPlaying = false
-                    currentFilePath = null
+                    this@AudioPlayerManager.isPlaying = false
+                    this@AudioPlayerManager.currentFilePath = null
                     onComplete()
                     handler.removeCallbacksAndMessages(null)
                 }
                 start()
-                isPlaying = true
+                this@AudioPlayerManager.isPlaying = true
                 startProgressTracking()
             }
         } catch (e: IOException) {
@@ -92,7 +92,7 @@ class AudioPlayerManager {
         handler.removeCallbacksAndMessages(null)
         try {
             mediaPlayer?.apply {
-                if (isPlaying) stop()
+                if (this@AudioPlayerManager.isPlaying) stop()
                 release()
             }
         } catch (e: Exception) {

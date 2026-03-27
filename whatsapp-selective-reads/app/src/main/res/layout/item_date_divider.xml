@@ -18,7 +18,7 @@
         android:textStyle="bold"
         android:elevation="2dp"
         android:shadowColor="#40000000"
-        android:shadowDy="1dp"
+        android:shadowDy="1"
         android:shadowRadius="2" />
 
 </FrameLayout>
